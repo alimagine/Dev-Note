@@ -1,20 +1,663 @@
 <!DOCTYPE html>
-<html>
-  <head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALIMAGINE | DEV-NOTE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-      body {
-        background-color: black;
-        font-family: consolas,sans-serif,sans;
-      }
-      h1 {
-        text-align: center;
-        margin: auto;
-        color: white;
-      }
+        :root {
+            --bg: #000000;
+            --surface: #0a0a0a;
+            --border: #222222;
+            --accent: #ffffff;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: #ffffff;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Notched Corners - High Tech Aesthetic */
+        .notched {
+            clip-path: polygon(
+                0 0, 
+                calc(100% - 16px) 0, 100% 16px, 
+                100% 100%, 
+                16px 100%, 0 calc(100% - 16px)
+            );
+        }
+
+        .notched-sm {
+            clip-path: polygon(
+                0 0, 
+                calc(100% - 8px) 0, 100% 8px, 
+                100% 100%, 
+                8px 100%, 0 calc(100% - 8px)
+            );
+        }
+
+        /* Home Canvas Background */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .engine-card {
+            background: rgba(15, 15, 15, 0.8);
+            border: 1px solid var(--border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .engine-card:hover {
+            background: white;
+            color: black;
+            transform: translateY(-4px);
+        }
+
+        /* Clean Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        pre { background: #080808 !important; border: 1px solid #222; border-radius: 4px; }
+        code { font-family: 'JetBrains Mono', monospace; }
+
+        .search-chip {
+            padding: 4px 12px;
+            border: 1px solid #333;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .search-chip.active {
+            background: white;
+            color: black;
+            border-color: white;
+        }
+
+        .toc-link:hover {
+            color: white;
+            padding-left: 8px;
+        }
+        .toc-link {
+            transition: all 0.2s;
+        }
+
+        .doc-section {
+            scroll-margin-top: 100px;
+        }
     </style>
-    <title>DEV-NOTE</title>
-  </head>
-  <body>
-    <h1>DEV-NOTE</h1>
-  </body>  
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Top Navigation -->
+    <nav class="h-16 border-b border-white/10 flex items-center justify-between px-6 md:px-12 bg-black/80 backdrop-blur-lg sticky top-0 z-50">
+        <div class="flex items-center gap-8">
+            <button onclick="showHome()" class="flex items-center gap-3 group">
+                <div class="w-8 h-8 bg-white text-black flex items-center justify-center font-black notched-sm">A</div>
+                <div class="flex flex-col">
+                    <span class="mono text-[10px] font-bold tracking-widest uppercase leading-none text-white/40">ALIMAGINE</span>
+                    <span class="mono text-xs font-bold tracking-widest uppercase leading-none mt-1">DEV-NOTE</span>
+                </div>
+            </button>
+            <div id="breadcrumb" class="hidden lg:flex items-center gap-2 text-[10px] mono text-white/30 uppercase tracking-tighter">
+                <!-- Breadcrumbs Dynamic -->
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="toggleSearch()" class="flex items-center gap-2 px-3 py-1.5 border border-white/10 notched-sm text-[10px] mono text-white/60 hover:border-white/40 transition-all">
+                <i data-lucide="search" class="w-3 h-3"></i> SEARCH [CTRL K]
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main View Container -->
+    <main id="main-content" class="flex-1 w-full max-w-7xl mx-auto p-6 md:p-12">
+        <!-- Default Content (Home) -->
+    </main>
+
+    <!-- Modal Search -->
+    <div id="search-modal" class="fixed inset-0 z-[100] hidden flex items-start justify-center pt-[10vh] px-4">
+        <div class="fixed inset-0 bg-black/90 backdrop-blur-md" onclick="toggleSearch()"></div>
+        <div class="bg-[#0a0a0a] w-full max-w-2xl border border-white/20 notched shadow-2xl relative z-10 overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-white/10">
+                <div class="flex items-center gap-4 mb-4">
+                    <i data-lucide="terminal" class="w-4 h-4 text-white/30"></i>
+                    <input type="text" id="search-input" placeholder="SEARCH RECORDS..." class="bg-transparent w-full outline-none text-2xl mono uppercase font-bold tracking-tighter">
+                </div>
+                <div class="flex flex-wrap gap-2" id="search-filters">
+                    <div class="search-chip active mono uppercase" onclick="filterSearch('all', this)">All</div>
+                    <div class="search-chip mono uppercase" onclick="filterSearch('general', this)">General</div>
+                    <div class="search-chip mono uppercase" onclick="filterSearch('godot', this)">Godot</div>
+                    <div class="search-chip mono uppercase" onclick="filterSearch('unity', this)">Unity</div>
+                </div>
+            </div>
+            <div id="search-results" class="max-h-[50vh] overflow-y-auto p-4 space-y-2">
+                <!-- Results -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Documentation Database ---
+        const docsData = {
+            'general': {
+                name: 'General Logic',
+                icon: 'brain-circuit',
+                topics: [
+                    {
+                        id: 'state-machine-pattern',
+                        title: 'Finite State Machine (FSM)',
+                        category: 'Logic Architecture',
+                        version: 'Agnostic',
+                        complexity: 'Intermediate',
+                        readTime: '8 min',
+                        description: 'A robust design pattern to manage game actor states without messy if-else blocks. Highly recommended for complex AI or Player controllers.',
+                        prerequisites: 'Basic understanding of Classes and Inheritance.',
+                        steps: [
+                            'Define a base State class with Enter, Exit, and Update methods.',
+                            'Create a StateMachine class to hold the Current State.',
+                            'Implement concrete states (e.g., IdleState, MoveState).',
+                            'Call state machine updates in the game loop.'
+                        ],
+                        code: `// Base Logic Example\nclass State {\n    virtual void Enter() {}\n    virtual void Update(float dt) {}\n    virtual void Exit() {}\n}`,
+                        references: [{ name: 'Game Programming Patterns', url: 'https://gameprogrammingpatterns.com/state.html' }]
+                    }
+                ]
+            },
+            'godot': {
+                name: 'Godot Engine',
+                icon: 'cpu',
+                topics: [
+                    {
+                        id: 'godot-iso-movement',
+                        title: 'Isometric 8-Way Movement',
+                        category: 'Mechanics',
+                        version: 'Godot 4.3+',
+                        complexity: 'Beginner',
+                        readTime: '5 min',
+                        description: 'Implementing 8-way character movement for isometric perspectives. Essential for ARPG or Strategy games.',
+                        prerequisites: 'CharacterBody2D setup with a Sprite.',
+                        steps: [
+                            'Setup CharacterBody2D with an isometric Sprite.',
+                            'Capture input vector using Input.get_vector().',
+                            'Transform Y-axis by 50% to align with standard 2:1 isometric ratio.',
+                            'Normalize vector to prevent diagonal speed boosting.'
+                        ],
+                        code: `func _physics_process(delta):\n    var dir = Input.get_vector("left", "right", "up", "down")\n    \n    # Isometric Transform\n    velocity = Vector2(\n        dir.x - dir.y,\n        (dir.x + dir.y) / 2\n    ).normalized() * SPEED\n    \n    move_and_slide()`,
+                        references: [{ name: 'Godot Docs', url: '#' }]
+                    }
+                ]
+            },
+            'unity': {
+                name: 'Unity Engine',
+                icon: 'box',
+                topics: [
+                    {
+                        id: 'unity-object-pooling',
+                        title: 'Optimized Object Pooling',
+                        category: 'Performance',
+                        version: 'Unity 2022.3+',
+                        complexity: 'Advanced',
+                        readTime: '12 min',
+                        description: 'Reduce Garbage Collection spikes by recycling projectiles and effects. Vital for mobile optimization.',
+                        prerequisites: 'Knowledge of Generics and Queues.',
+                        steps: [
+                            'Create a pool of pre-instantiated GameObjects.',
+                            'Set inactive items to a queue or list.',
+                            'Instead of Destroy(), return to pool (SetActive(false)).',
+                            'Instead of Instantiate(), request from pool.'
+                        ],
+                        code: `public GameObject GetFromPool() {\n    if (poolQueue.Count == 0) return Instantiate(prefab);\n    var obj = poolQueue.Dequeue();\n    obj.SetActive(true);\n    return obj;\n}`,
+                        references: []
+                    }
+                ]
+            }
+        };
+
+        let currentSearchCategory = 'all';
+
+        // --- View Logic ---
+        function showHome() {
+            const container = document.getElementById('main-content');
+            updateBreadcrumb([]);
+            
+            let html = `
+                <div class="fade-in space-y-24 pb-20">
+                    <!-- Hero Section -->
+                    <div class="flex flex-col lg:flex-row gap-16 items-center">
+                        <div class="flex-1">
+                            <h1 class="text-7xl lg:text-8xl font-black tracking-tighter mb-8 uppercase leading-none text-white">THE ARCHIVE OF ALIMAGINE</h1>
+                            <p class="text-xl text-white/50 mono leading-relaxed mb-10 max-w-3xl">
+                                A technical sanctuary built for game developers. We document our journey, mechanics, and optimizations to help you build better games.
+                            </p>
+                            <div class="flex gap-4">
+                                <button onclick="scrollToEngines()" class="bg-white text-black font-bold px-10 py-4 notched-sm hover:bg-gray-200 transition-all uppercase text-xs">START EXPLORING</button>
+                                <button onclick="toggleSearch()" class="border border-white/20 text-white font-bold px-10 py-4 notched-sm hover:bg-white/10 transition-all uppercase text-xs">SEARCH DATABASE</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Studio Section -->
+                    <div class="grid lg:grid-cols-2 gap-16 py-20 border-y border-white/5">
+                        <div class="space-y-10">
+                            <div>
+                                <h3 class="text-xs mono text-white/30 uppercase tracking-[0.4em] mb-4">PURPOSE_LOG</h3>
+                                <h2 class="text-4xl font-bold uppercase tracking-tight mb-6">WHY WE DOCUMENT</h2>
+                                <p class="text-white/60 leading-relaxed text-lg">
+                                    Game development is an endless stream of problem-solving. We believe that a solution undocumented is a lesson lost. This repository serves as our collective memory.
+                                </p>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="flex items-start gap-4 p-6 bg-white/5 notched-sm">
+                                    <div class="w-10 h-10 shrink-0 border border-white/20 flex items-center justify-center font-bold">1</div>
+                                    <p class="text-sm text-white/70">Clear, step-by-step guides for logic and technical architecture.</p>
+                                </div>
+                                <div class="flex items-start gap-4 p-6 bg-white/5 notched-sm">
+                                    <div class="w-10 h-10 shrink-0 border border-white/20 flex items-center justify-center font-bold">2</div>
+                                    <p class="text-sm text-white/70">Engine-specific and general development best practices.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="aspect-square bg-white/5 notched-sm border border-white/10 flex items-center justify-center text-[10px] mono text-white/20 uppercase tracking-widest">[ ENGINE_STRESS_TEST ]</div>
+                            <div class="aspect-square bg-white/5 notched-sm border border-white/10 flex items-center justify-center text-[10px] mono text-white/20 uppercase tracking-widest">[ SHADER_ANALYSIS ]</div>
+                            <div class="aspect-square bg-white/5 notched-sm border border-white/10 flex items-center justify-center text-[10px] mono text-white/20 uppercase tracking-widest">[ LOGIC_FLOW_CHART ]</div>
+                            <div class="aspect-square bg-white/5 notched-sm border border-white/10 flex items-center justify-center text-[10px] mono text-white/20 uppercase tracking-widest">[ PERFORMANCE_GRAPH ]</div>
+                        </div>
+                    </div>
+
+                    <!-- Categories -->
+                    <div id="engine-section" class="pt-12">
+                        <h3 class="text-xs mono text-white/30 uppercase tracking-[0.3em] mb-12">SECTOR_NAVIGATION</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            ${Object.entries(docsData).map(([key, engine]) => `
+                                <button onclick="showEngine('${key}')" class="engine-card notched p-12 text-left group">
+                                    <i data-lucide="${engine.icon}" class="w-12 h-12 mb-10 text-white/20 group-hover:text-black transition-colors"></i>
+                                    <h3 class="text-2xl font-bold uppercase mono tracking-tighter group-hover:text-black">${engine.name}</h3>
+                                    <div class="flex justify-between items-center mt-4">
+                                        <p class="text-[10px] mono text-white/40 group-hover:text-black/60">${engine.topics.length} ENTRIES</p>
+                                        <i data-lucide="arrow-right" class="w-4 h-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-2 transition-all group-hover:text-black"></i>
+                                    </div>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+            lucide.createIcons();
+            initCanvas(); 
+        }
+
+        function showEngine(engineKey) {
+            const engine = docsData[engineKey];
+            const container = document.getElementById('main-content');
+            updateBreadcrumb(['Home', engine.name]);
+
+            let html = `
+                <div class="fade-in max-w-5xl">
+                    <button onclick="showHome()" class="flex items-center gap-2 text-[10px] mono text-white/40 hover:text-white mb-16 transition-all group">
+                        <i data-lucide="chevron-left" class="w-3 h-3 group-hover:-translate-x-1 transition-transform"></i> RETURN_HOME
+                    </button>
+                    
+                    <div class="flex flex-col md:flex-row md:items-end justify-between border-b border-white/10 pb-10 mb-16 gap-6">
+                        <div>
+                            <h2 class="text-7xl font-black uppercase tracking-tighter">${engine.name}</h2>
+                            <p class="text-white/40 mono text-sm mt-4 uppercase tracking-widest">>> Sub-Archive / ${engineKey}</p>
+                        </div>
+                    </div>
+
+                    <div class="grid gap-6">
+                        ${engine.topics.length > 0 ? engine.topics.map(topic => `
+                            <button onclick="showDoc('${engineKey}', '${topic.id}')" 
+                                    class="w-full text-left p-10 bg-white/5 border border-white/10 hover:border-white/40 transition-all flex items-center justify-between notched group">
+                                <div class="space-y-3">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-[9px] mono text-white/40 uppercase tracking-[0.2em]">${topic.category}</span>
+                                        <span class="w-1 h-1 bg-white/20 rounded-full"></span>
+                                        <span class="text-[9px] mono text-white/40 uppercase tracking-[0.2em]">${topic.complexity}</span>
+                                    </div>
+                                    <h4 class="text-3xl font-bold uppercase tracking-tight group-hover:text-white">${topic.title}</h4>
+                                    <p class="text-white/40 text-sm max-w-2xl">${topic.description}</p>
+                                </div>
+                                <div class="flex flex-col items-end gap-2">
+                                    <span class="text-[9px] mono text-white/20 group-hover:text-white transition-colors uppercase tracking-widest">${topic.readTime}</span>
+                                    <div class="w-10 h-10 border border-white/10 group-hover:border-white/40 flex items-center justify-center transition-all">
+                                        <i data-lucide="arrow-right" class="w-4 h-4 text-white/20 group-hover:text-white group-hover:translate-x-1 transition-all"></i>
+                                    </div>
+                                </div>
+                            </button>
+                        `).join('') : `
+                            <div class="p-32 text-center border border-dashed border-white/10 notched flex flex-col items-center">
+                                <i data-lucide="search-x" class="w-12 h-12 text-white/10 mb-6"></i>
+                                <p class="mono text-white/20 text-xs uppercase tracking-widest">No documentation found in this sector yet.</p>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+            lucide.createIcons();
+            window.scrollTo(0,0);
+        }
+
+        function showDoc(engineKey, docId) {
+            const engine = docsData[engineKey];
+            const doc = engine.topics.find(t => t.id === docId);
+            const container = document.getElementById('main-content');
+            updateBreadcrumb(['Home', engine.name, doc.title]);
+
+            let html = `
+                <div class="max-w-6xl mx-auto fade-in">
+                    <button onclick="showEngine('${engineKey}')" class="flex items-center gap-2 text-[10px] mono text-white/40 hover:text-white mb-16 transition-all group">
+                        <i data-lucide="chevron-left" class="w-3 h-3 group-hover:-translate-x-1 transition-transform"></i> BACK_TO_LIST
+                    </button>
+
+                    <!-- Header Meta -->
+                    <div class="grid lg:grid-cols-4 gap-12 mb-20">
+                        <div class="lg:col-span-3">
+                            <div class="flex flex-wrap items-center gap-4 mb-6">
+                                <span class="bg-white text-black px-3 py-1 text-[10px] font-black mono uppercase tracking-widest notched-sm">${doc.category}</span>
+                                <span class="border border-white/20 text-white/60 px-3 py-1 text-[10px] font-bold mono uppercase tracking-widest notched-sm">${doc.version}</span>
+                                <span class="text-[10px] mono text-white/40 uppercase tracking-widest">EST_READ: ${doc.readTime}</span>
+                            </div>
+                            <h1 class="text-6xl lg:text-7xl font-black mb-10 tracking-tighter uppercase leading-none">${doc.title}</h1>
+                            <p class="text-2xl text-white/60 leading-relaxed font-light">${doc.description}</p>
+                        </div>
+                        <div class="lg:col-span-1 space-y-4">
+                            <div class="p-6 border border-white/10 notched-sm bg-white/5 space-y-4">
+                                <h4 class="text-[9px] mono text-white/30 uppercase tracking-widest mb-4">LOG_DETAILS</h4>
+                                <div>
+                                    <p class="text-[10px] mono text-white/20 uppercase">Complexity</p>
+                                    <p class="text-sm font-bold uppercase tracking-tight text-white/80">${doc.complexity}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] mono text-white/20 uppercase">Prerequisites</p>
+                                    <p class="text-sm text-white/60">${doc.prerequisites || 'None'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Navigation Ringkasan (ToC) -->
+                    <div class="p-10 border border-white/10 notched mb-20 bg-white/[0.02]">
+                        <h4 class="text-xs font-bold mono mb-8 text-white uppercase tracking-[0.3em] flex items-center gap-3">
+                            <i data-lucide="list" class="w-4 h-4"></i> QUICK_NAVIGATION
+                        </h4>
+                        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <a href="#section-visual" class="p-4 border border-white/5 hover:border-white/20 transition-all text-sm mono text-white/50 hover:text-white uppercase tracking-tighter notched-sm">
+                                00_VISUAL_ASSET
+                            </a>
+                            <a href="#section-flow" class="p-4 border border-white/5 hover:border-white/20 transition-all text-sm mono text-white/50 hover:text-white uppercase tracking-tighter notched-sm">
+                                01_WORK_FLOW
+                            </a>
+                            ${doc.code ? `
+                            <a href="#section-code" class="p-4 border border-white/5 hover:border-white/20 transition-all text-sm mono text-white/50 hover:text-white uppercase tracking-tighter notched-sm">
+                                02_SOURCE_CODE
+                            </a>` : ''}
+                            <a href="#section-resources" class="p-4 border border-white/5 hover:border-white/20 transition-all text-sm mono text-white/50 hover:text-white uppercase tracking-tighter notched-sm">
+                                03_EXTERNAL_LINKS
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="grid lg:grid-cols-4 gap-16">
+                        <!-- Content Area -->
+                        <div class="lg:col-span-3 space-y-24">
+                            
+                            <!-- Visual Asset Section -->
+                            <section id="section-visual" class="doc-section">
+                                <div class="w-full aspect-video bg-white/5 border border-white/10 notched flex flex-col items-center justify-center group overflow-hidden relative">
+                                    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+                                    <i data-lucide="image" class="w-12 h-12 text-white/10 mb-4 group-hover:scale-110 transition-transform"></i>
+                                    <span class="mono text-[10px] text-white/20 uppercase tracking-[0.4em] z-10">[ VISUAL_ASSET_PLACEHOLDER ]</span>
+                                </div>
+                            </section>
+
+                            <!-- Implementation Section -->
+                            <section id="section-flow" class="doc-section">
+                                <h3 class="text-sm mono text-white/30 uppercase tracking-[0.3em] mb-10 flex items-center gap-4">
+                                    01 / IMPLEMENTATION_FLOW
+                                    <div class="h-[1px] flex-1 bg-white/5"></div>
+                                </h3>
+                                <div class="grid gap-6">
+                                    ${doc.steps.map((step, i) => `
+                                        <div class="flex gap-8 p-8 bg-white/5 border border-white/5 notched-sm group hover:border-white/10 transition-colors">
+                                            <div class="w-12 h-12 border border-white/10 notched-sm flex items-center justify-center mono text-lg font-bold text-white/20 group-hover:text-white transition-colors shrink-0">
+                                                ${(i+1).toString().padStart(2, '0')}
+                                            </div>
+                                            <p class="text-lg text-white/80 leading-relaxed">${step}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </section>
+
+                            <!-- Code Section -->
+                            ${doc.code ? `
+                            <section id="section-code" class="doc-section">
+                                <h3 class="text-sm mono text-white/30 uppercase tracking-[0.3em] mb-10 flex items-center gap-4">
+                                    02 / CODE_SNIPPET
+                                    <div class="h-[1px] flex-1 bg-white/5"></div>
+                                </h3>
+                                <div class="relative group">
+                                    <button onclick="copyCode(this)" class="absolute top-6 right-6 text-[10px] mono border border-white/20 px-4 py-2 hover:bg-white hover:text-black transition-all opacity-0 group-hover:opacity-100 z-10 notched-sm">COPY_BLOCK</button>
+                                    <pre class="p-10 overflow-x-auto text-base mono text-white/90 leading-relaxed">${doc.code}</pre>
+                                </div>
+                            </section>
+                            ` : ''}
+
+                            <!-- Final Resources -->
+                            <section id="section-resources" class="doc-section border-t border-white/5 pt-16">
+                                <h3 class="text-sm mono text-white/30 uppercase tracking-[0.3em] mb-10">03 / ADDITIONAL_RESOURCES</h3>
+                                <div class="grid sm:grid-cols-2 gap-4">
+                                    ${doc.references.length > 0 ? doc.references.map(ref => `
+                                        <a href="${ref.url}" target="_blank" class="p-6 border border-white/10 notched-sm hover:bg-white hover:text-black transition-all flex items-center justify-between group">
+                                            <span class="font-bold text-sm uppercase tracking-tight">${ref.name}</span>
+                                            <i data-lucide="external-link" class="w-4 h-4 text-white/30 group-hover:text-black"></i>
+                                        </a>
+                                    `).join('') : '<p class="text-[10px] mono text-white/20">NO_EXTERNAL_LINKS_ATTACHED</p>'}
+                                </div>
+                            </section>
+                        </div>
+
+                        <!-- Sticky Table of Contents (Side) -->
+                        <div class="hidden lg:block">
+                            <div class="sticky top-24 space-y-8">
+                                <div class="p-8 border border-white/10 notched-sm bg-white/5">
+                                    <h4 class="text-[9px] font-bold mono mb-8 text-white/40 uppercase tracking-[0.2em]">SIDE_NAVIGATION</h4>
+                                    <div class="flex flex-col gap-5">
+                                        <a href="#section-visual" class="toc-link text-xs mono text-white/40 flex items-center gap-3">
+                                            <div class="w-1.5 h-1.5 bg-white/20"></div> 00 / VISUALS
+                                        </a>
+                                        <a href="#section-flow" class="toc-link text-xs mono text-white/40 flex items-center gap-3">
+                                            <div class="w-1.5 h-1.5 bg-white/20"></div> 01 / WORK_FLOW
+                                        </a>
+                                        ${doc.code ? `
+                                        <a href="#section-code" class="toc-link text-xs mono text-white/40 flex items-center gap-3">
+                                            <div class="w-1.5 h-1.5 bg-white/20"></div> 02 / SOURCE
+                                        </a>` : ''}
+                                        <a href="#section-resources" class="toc-link text-xs mono text-white/40 flex items-center gap-3">
+                                            <div class="w-1.5 h-1.5 bg-white/20"></div> 03 / RESOURCES
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+            lucide.createIcons();
+            window.scrollTo(0,0);
+        }
+
+        // --- Core Utils ---
+        function toggleSearch() {
+            const modal = document.getElementById('search-modal');
+            modal.classList.toggle('hidden');
+            if(!modal.classList.contains('hidden')) document.getElementById('search-input').focus();
+        }
+
+        function filterSearch(category, el) {
+            currentSearchCategory = category;
+            document.querySelectorAll('.search-chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            updateSearchResults();
+        }
+
+        function updateSearchResults() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const results = document.getElementById('search-results');
+            results.innerHTML = '';
+            
+            if(query.length < 1 && currentSearchCategory === 'all') return;
+
+            Object.keys(docsData).forEach(engineKey => {
+                if(currentSearchCategory !== 'all' && engineKey !== currentSearchCategory) return;
+
+                docsData[engineKey].topics.forEach(topic => {
+                    if(topic.title.toLowerCase().includes(query) || topic.category.toLowerCase().includes(query)) {
+                        results.innerHTML += `
+                            <button onclick="showDoc('${engineKey}', '${topic.id}'); toggleSearch();" class="w-full text-left p-6 bg-white/5 border border-white/10 hover:bg-white hover:text-black transition-all group flex justify-between items-center notched-sm">
+                                <div>
+                                    <div class="text-[9px] opacity-40 mono uppercase mb-1 tracking-widest">${docsData[engineKey].name} // ${topic.category}</div>
+                                    <div class="font-bold uppercase tracking-tight text-lg">${topic.title}</div>
+                                </div>
+                                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                            </button>
+                        `;
+                    }
+                });
+            });
+            lucide.createIcons();
+        }
+
+        document.getElementById('search-input').addEventListener('input', updateSearchResults);
+
+        function updateBreadcrumb(paths) {
+            const el = document.getElementById('breadcrumb');
+            if(paths.length === 0) {
+                el.innerHTML = '<span>PATH: /ROOT</span>';
+            } else {
+                el.innerHTML = 'PATH: ' + paths.map(p => `<span>/</span><span class="text-white">${p.toUpperCase()}</span>`).join('');
+            }
+        }
+
+        function scrollToEngines() {
+            document.getElementById('engine-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function copyCode(btn) {
+            const code = btn.nextElementSibling.innerText;
+            navigator.clipboard.writeText(code);
+            const original = btn.innerText;
+            btn.innerText = 'DATA_SYNCED';
+            btn.classList.add('bg-white', 'text-black');
+            setTimeout(() => {
+                btn.innerText = original;
+                btn.classList.remove('bg-white', 'text-black');
+            }, 2000);
+        }
+
+        // --- Background Canvas Effect ---
+        function initCanvas() {
+            const canvas = document.getElementById('bg-canvas');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.vx = (Math.random() - 0.5) * 0.4;
+                    this.vy = (Math.random() - 0.5) * 0.4;
+                }
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+                    if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 0.8, 0, Math.PI * 2);
+                    ctx.fillStyle = "rgba(255,255,255,0.3)";
+                    ctx.fill();
+                }
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach((p, i) => {
+                    p.update();
+                    p.draw();
+                    for(let j = i + 1; j < particles.length; j++) {
+                        const dist = Math.hypot(p.x - particles[j].x, p.y - particles[j].y);
+                        if(dist < 180) {
+                            ctx.beginPath();
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(255,255,255,${0.08 * (1 - dist/180)})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.stroke();
+                        }
+                    }
+                });
+                requestAnimationFrame(animate);
+            }
+
+            window.addEventListener('resize', resize);
+            resize();
+            particles = [];
+            for(let i = 0; i < 50; i++) particles.push(new Particle());
+            animate();
+        }
+
+        // Init App
+        window.onload = () => {
+            showHome();
+            initCanvas();
+            lucide.createIcons();
+        };
+
+        // Shortcuts
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'k') { e.preventDefault(); toggleSearch(); }
+            if (e.key === 'Escape') document.getElementById('search-modal').classList.add('hidden');
+        });
+    </script>
+</body>
 </html>
